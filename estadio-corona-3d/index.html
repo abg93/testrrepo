@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estadio Corona 3D</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <aside id="panel">
+      <header>
+        <button id="panelToggle" aria-label="Mostrar u ocultar panel">☰</button>
+        <div>
+          <h1>Estadio Corona <span>TSM</span></h1>
+          <p class="sub">Torreón, Coahuila · <span id="capacity">—</span> asientos modelados</p>
+        </div>
+      </header>
+      <div class="panel-body">
+        <h2>Zonas</h2>
+        <ul id="legend"></ul>
+        <h2>Secciones <small>(clic para ir)</small></h2>
+        <div class="tier-label">Nivel superior</div>
+        <div id="sectionsUpper" class="sections"></div>
+        <div class="tier-label">Nivel inferior</div>
+        <div id="sectionsLower" class="sections"></div>
+        <h2>Capas</h2>
+        <label class="toggle"><input type="checkbox" id="optSunMap" /> Colorear asientos por sol / sombra</label>
+        <label class="toggle"><input type="checkbox" id="optRoof" checked /> Mostrar techo</label>
+        <label class="toggle"><input type="checkbox" id="optShadows" checked /> Sombras proyectadas</label>
+        <div id="sunStats" class="stats" hidden></div>
+        <button id="resetView" class="ghost">⟲ Vista general</button>
+      </div>
+    </aside>
+
+    <section id="card" hidden>
+      <button class="close" id="cardClose" aria-label="Cerrar">×</button>
+      <div class="kicker" id="cardKicker"></div>
+      <h3 id="cardTitle"></h3>
+      <dl id="cardFacts"></dl>
+      <div id="cardSun" class="sunbadge"></div>
+      <button id="btnSeatView" class="primary">👁 Vista desde el asiento</button>
+      <p class="hint" id="cardHint">Haz clic en un asiento del estadio para elegirlo.</p>
+    </section>
+
+    <div id="tooltip" hidden></div>
+
+    <div id="seatview" hidden>
+      <canvas id="svCanvas"></canvas>
+      <div class="sv-top">
+        <button id="svBack">← Volver al mapa</button>
+        <div id="svLabel"></div>
+        <div class="sv-nav">
+          <button id="svPrev" title="Asiento anterior">◀</button>
+          <button id="svNext" title="Asiento siguiente">▶</button>
+        </div>
+      </div>
+      <p class="sv-hint">Arrastra para mirar alrededor · rueda / pellizco para acercar</p>
+    </div>
+
+    <footer id="timebar">
+      <div class="tb-row">
+        <input type="date" id="date" />
+        <button id="play" title="Reproducir día">▶</button>
+        <input type="range" id="time" min="0" max="1439" step="1" />
+        <output id="timeLabel">--:--</output>
+      </div>
+      <div class="tb-info">
+        <span id="sunAlt"></span>
+        <span id="sunTimes"></span>
+        <span class="tz">Hora local (UTC−6)</span>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
