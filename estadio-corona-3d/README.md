@@ -1,7 +1,7 @@
-# Estadio Corona 3D
+# Estadio TSM Corona 3D
 
-App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio Corona (TSM)**
-de Torreón, Coahuila, sobre el mapa de **OpenStreetMap**.
+App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TSM Corona** (Territorio Santos Modelo,
+2009) de Torreón, Coahuila, sobre el mapa de **OpenStreetMap**.
 
 ## Qué hace
 
