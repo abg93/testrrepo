@@ -38,7 +38,11 @@ const map = new maplibregl.Map({
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     },
-    layers: [{ id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-fade-duration': 150 } }],
+    layers: [
+      // Fondo de respaldo (terreno) por si los mosaicos de OSM no cargan.
+      { id: 'fondo', type: 'background', paint: { 'background-color': '#cbbf9f' } },
+      { id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-fade-duration': 150 } },
+    ],
   },
   center: [SITE.lng, SITE.lat],
   zoom: 16.6,
@@ -290,6 +294,7 @@ function updateSun() {
   if (map.getLayer('osm')) {
     map.setPaintProperty('osm', 'raster-brightness-max', 0.28 + 0.72 * day);
     map.setPaintProperty('osm', 'raster-saturation', -0.5 * (1 - day));
+    map.setPaintProperty('fondo', 'background-color', `hsl(42, ${20 + 10 * day}%, ${12 + 60 * day}%)`);
   }
   if (state.sunMap) { computeSunMap(); recolorAll(); }
   if (currentSeat()) renderCard();
