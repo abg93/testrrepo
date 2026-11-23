@@ -28,7 +28,13 @@ button { font: inherit; cursor: pointer; }
 #panel.collapsed .panel-body { display: none; }
 #panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin: 14px 0 8px; font-weight: 600; }
 #panel h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
-#legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 12.5px; }
+#legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 12.5px; }
+#legend .zl { flex: 1; }
+#legend .zp { font-variant-numeric: tabular-nums; font-weight: 600; }
+.budget { margin-top: 12px; display: grid; gap: 4px; font-size: 12.5px; }
+.budget b { color: var(--sel); }
+#budget { width: 100%; accent-color: var(--accent); }
+#card .price { color: var(--sel); font-size: 15px; }
 #legend li { display: flex; align-items: center; gap: 6px; }
 .chip { width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid rgba(0,0,0,.3); }
 .tier-label { font-size: 11px; color: var(--muted); margin: 6px 0 4px; }

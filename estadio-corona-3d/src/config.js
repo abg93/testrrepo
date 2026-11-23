@@ -18,3 +18,15 @@ export const SITE = {
   // Torreón usa America/Monterrey: UTC-6 todo el año (sin horario de verano desde 2022).
   utcOffsetHours: -6,
 };
+
+// Precios por zona (MXN, por boleto). SON PRECIOS DE EJEMPLO: cámbialos aquí
+// según el partido. Las claves coinciden con las zonas de src/layout.js.
+export const PRICES = {
+  preferente: 650,
+  lateral: 480,
+  esquina: 350,
+  cabecera: 260,
+  alta: 380,
+  altaCab: 220,
+};
+export const CURRENCY = 'MXN';

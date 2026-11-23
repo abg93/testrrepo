@@ -18,6 +18,9 @@ App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TS
   [SunCalc](https://github.com/mourner/suncalc). Las sombras del techo y las gradas se proyectan
   sobre la cancha y el mapa. De noche se encienden las luminarias y el mapa se oscurece. ▶
   reproduce el día a una hora por segundo.
+- **Precios por zona.** Cada zona tiene un precio de ejemplo en MXN (editable en `src/config.js`,
+  constante `PRICES`). Se ve en la leyenda, el tooltip, la tarjeta y la vista desde el asiento.
+  El control *Mi presupuesto* atenúa las secciones que cuestan más.
 - **¿Sol o sombra?** La tarjeta del asiento dice si le da el sol a esa hora. La opción
   *Colorear asientos por sol / sombra* pinta todo el estadio y da el porcentaje de asientos al sol.
   El cálculo es analítico: el rayo hacia el sol se cruza con el techo y con la silueta de las gradas.

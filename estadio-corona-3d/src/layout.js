@@ -109,6 +109,8 @@ export function structureHeight(d) {
 }
 
 // ---- Secciones y asientos
+import { PRICES } from './config.js';
+
 export const ZONES = {
   preferente: { label: 'Preferente', color: '#1f9d55' },
   lateral: { label: 'Lateral', color: '#47c27f' },
@@ -117,6 +119,7 @@ export const ZONES = {
   alta: { label: 'Alta lateral', color: '#0f5c35' },
   altaCab: { label: 'Alta cabecera / esquina', color: '#7a9c8b' },
 };
+for (const [k, z] of Object.entries(ZONES)) z.price = PRICES[k] ?? 0;
 
 function zoneFor(side, idx, tier) {
   if (tier === 'upper') return side.type === 'lateral' ? 'alta' : 'altaCab';

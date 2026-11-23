@@ -2,7 +2,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './style.css';
 import maplibregl from 'maplibre-gl';
 import * as THREE from 'three';
-import { SITE } from './config.js';
+import { SITE, CURRENCY } from './config.js';
 import { ZONES } from './layout.js';
 import { createStadium } from './stadium.js';
 import { sunInfo, localToDate, fmtLocal, todayLocalYMD, worldToLocalDir, seatSunlit } from './sun.js';
@@ -22,7 +22,11 @@ const state = {
   section: null,
   seatIndex: -1,
   playing: false,
+  maxPrice: Infinity,
 };
+
+const money = (n) => `$${n.toLocaleString('es-MX')} ${CURRENCY}`;
+const priceOf = (sec) => ZONES[sec.zone].price;
 
 // ---------------- mapa ----------------
 const map = new maplibregl.Map({
@@ -143,6 +147,7 @@ const COLOR_SUN = new THREE.Color('#ff9f1c');
 const COLOR_SHADE = new THREE.Color('#3a7bd5');
 const COLOR_SEL = new THREE.Color('#ffd23f');
 const WHITE = new THREE.Color('#ffffff');
+const GREY = new THREE.Color('#4a4f4c');
 const c = new THREE.Color();
 
 function currentSeat() {
@@ -154,6 +159,7 @@ function recolor(sec) {
   for (let i = 0; i < sec.seats.length; i++) {
     if (state.sunMap && sec.sunlit) c.copy(sec.sunlit[i] ? COLOR_SUN : COLOR_SHADE);
     else c.copy(sec.baseColor);
+    if (priceOf(sec) > state.maxPrice) c.lerp(GREY, 0.85);
     if (highlighted) c.lerp(WHITE, 0.35);
     if (highlighted && i === state.seatIndex) c.copy(COLOR_SEL);
     sec.mesh.setColorAt(i, c);
@@ -214,11 +220,11 @@ function renderCard() {
   card.hidden = false;
   const seat = currentSeat();
   $('cardKicker').textContent = `${sec.tierLabel} · ${ZONES[sec.zone].label}`;
-  const facts = [['Ubicación', sec.sideName], ['Filas', sec.rows], ['Asientos', sec.seats.length.toLocaleString('es-MX')]];
+  const facts = [['Precio', `<b class="price">${money(priceOf(sec))}</b>`], ['Ubicación', sec.sideName], ['Filas', sec.rows], ['Asientos', sec.seats.length.toLocaleString('es-MX')]];
   if (seat) {
     $('cardTitle').textContent = `Sección ${sec.number} · Fila ${seat.row} · Asiento ${seat.num}`;
     const w = localToWorld(seat.x, seat.y, seat.z);
-    facts.unshift(['Distancia al centro', `${Math.round(Math.hypot(w.x, w.y))} m`], ['Altura', `${seat.z.toFixed(1)} m`]);
+    facts.splice(1, 0, ['Distancia al centro', `${Math.round(Math.hypot(w.x, w.y))} m`], ['Altura', `${seat.z.toFixed(1)} m`]);
     const st = sunText(seat);
     $('cardSun').className = `sunbadge ${st.cls}`;
     $('cardSun').innerHTML = st.html;
@@ -273,7 +279,7 @@ map.on('mousemove', (e) => {
     tip.hidden = false;
     tip.style.left = `${e.point.x}px`;
     tip.style.top = `${e.point.y}px`;
-    tip.textContent = `Sección ${r.sec.number} · Fila ${st.row} · Asiento ${st.num}`;
+    tip.textContent = `Sección ${r.sec.number} · Fila ${st.row} · Asiento ${st.num} · ${money(priceOf(r.sec))}`;
   });
 });
 map.on('mouseout', () => ($('tooltip').hidden = true));
@@ -332,13 +338,36 @@ $('play').addEventListener('click', () => {
 
 // ---------------- panel ----------------
 $('capacity').textContent = stadium.totalSeats.toLocaleString('es-MX');
-$('legend').innerHTML = Object.values(ZONES).map((z) => `<li><span class="chip" style="background:${z.color}"></span>${z.label}</li>`).join('');
+$('legend').innerHTML = Object.values(ZONES)
+  .sort((a, b) => b.price - a.price)
+  .map((z) => `<li><span class="chip" style="background:${z.color}"></span><span class="zl">${z.label}</span><span class="zp">${money(z.price)}</span></li>`)
+  .join('');
+{
+  // Filtro de presupuesto: atenúa las zonas más caras que el tope elegido.
+  const prices = Object.values(ZONES).map((z) => z.price);
+  const lo = Math.min(...prices), hi = Math.max(...prices);
+  const range = $('budget');
+  range.min = lo; range.max = hi; range.step = 10; range.value = hi;
+  const label = () => {
+    const v = +range.value;
+    state.maxPrice = v >= hi ? Infinity : v;
+    const n = sections.filter((s) => priceOf(s) <= v).reduce((a, s) => a + s.seats.length, 0);
+    $('budgetLabel').textContent = v >= hi ? 'todas las zonas' : `hasta ${money(v)}`;
+    $('budgetCount').textContent = `${n.toLocaleString('es-MX')} asientos dentro del presupuesto`;
+    document.querySelectorAll('.sections button').forEach((btn) => {
+      const sec = sections.find((s) => s.id === btn.dataset.id);
+      btn.style.opacity = sec && priceOf(sec) > v ? 0.3 : 1;
+    });
+  };
+  label();
+  range.addEventListener('input', () => { label(); recolorAll(); map.triggerRepaint(); });
+}
 for (const sec of sections) {
   const b = document.createElement('button');
   b.textContent = sec.number;
   b.dataset.id = sec.id;
   b.style.background = ZONES[sec.zone].color;
-  b.title = `${sec.sideName} · ${ZONES[sec.zone].label}`;
+  b.title = `${sec.sideName} · ${ZONES[sec.zone].label} · ${money(priceOf(sec))}`;
   b.addEventListener('click', () => selectSection(sec, -1, true));
   $(sec.tier === 'upper' ? 'sectionsUpper' : 'sectionsLower').appendChild(b);
 }
@@ -403,7 +432,7 @@ function updateSvLabel() {
   const sec = state.section, st = currentSeat();
   if (!st) return;
   const sun = sunText(st);
-  $('svLabel').innerHTML = `<b>Sección ${sec.number}</b> · Fila ${st.row} · Asiento ${st.num} — ${sun.html}`;
+  $('svLabel').innerHTML = `<b>Sección ${sec.number}</b> · Fila ${st.row} · Asiento ${st.num} · ${money(priceOf(sec))} — ${sun.html}`;
 }
 
 function aimAtPitch() {
