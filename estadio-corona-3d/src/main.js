@@ -8,6 +8,7 @@ import { createStadium } from './stadium.js';
 import { sunInfo, localToDate, fmtLocal, todayLocalYMD, worldToLocalDir, seatSunlit } from './sun.js';
 
 const $ = (id) => document.getElementById(id);
+const INTRO = !new URLSearchParams(location.search).has('sinintro');
 const stadium = createStadium();
 const { scene, root, sections, palcos } = stadium;
 
@@ -78,9 +79,10 @@ const map = new maplibregl.Map({
     ],
   },
   center: [SITE.lng, SITE.lat],
-  zoom: 16.4,
-  pitch: 55,
-  bearing: -20,
+  // Arranca lejos y llega volando al estadio (se omite con ?sinintro)
+  zoom: INTRO ? 13.6 : 16.4,
+  pitch: INTRO ? 20 : 55,
+  bearing: INTRO ? -80 : -20,
   maxPitch: 85,
   antialias: true,
 });
@@ -103,8 +105,7 @@ function applyViewMode(mode) {
   stadium.scenery.group.visible = seat || state.scenery;
   stadium.scenery.hills.visible = seat;
   const op = seat ? 1 : THREE.MathUtils.clamp(1 - (map.getZoom() - 17) * 0.6, 0.3, 1);
-  stadium.roofMat.opacity = op;
-  stadium.roofMat.depthWrite = op > 0.99;
+  for (const m of stadium.roofMats) { m.opacity = op; m.depthWrite = op > 0.99; }
   marker.visible = !seat && !!spotLocal();
 }
 
@@ -134,6 +135,7 @@ function addStadiumLayer() {
   if (map.getLayer(stadiumLayer.id)) return;
   map.addLayer(stadiumLayer);
   updateSun();
+  if (INTRO) setTimeout(() => map.flyTo({ center: [SITE.lng, SITE.lat], zoom: 16.4, pitch: 55, bearing: -20, duration: 4200, curve: 1.2 }), 300);
 }
 map.on('style.load', addStadiumLayer);
 map.on('load', addStadiumLayer);
@@ -323,6 +325,7 @@ function renderTicket() {
     actions = `${inView ? '' : '<button class="go" data-act="view">👁 Ver desde mi palco</button>'}
       <button class="vipb" data-act="reserve" ${p.taken && !mine ? 'disabled' : ''}>${mine ? 'Liberar mi palco' : p.taken ? 'Palco ocupado' : 'Apartar mi palco'}</button>
       <button data-act="nextPalco">Elegir otro palco</button>
+      ${p.level < 3 ? '<button data-act="palcoUp">Palcos altos ▲</button>' : ''}${p.level > 1 ? '<button data-act="palcoDown">Palcos bajos ▼</button>' : ''}
       ${inView ? '<button data-act="change">Volver a gradas</button>' : ''}`;
   } else if (sel.type === 'seat') {
     const sec = sel.sec, st = sec.seats[sel.i];
@@ -414,6 +417,14 @@ function onTicketAction(act) {
     if (i < 0) { toast('No hay palcos VIP libres'); return; }
     selectPalco(i, !sv.active);
     if (!sv.active) enterSeatView();
+    return;
+  }
+  if (act === 'palcoUp' || act === 'palcoDown') {
+    const cur = palcos[sel.i];
+    const level = cur.level + (act === 'palcoUp' ? 1 : -1);
+    let best = -1, bd = Infinity;
+    palcos.forEach((p, i) => { if (p.level === level && !p.taken && Math.abs(p.num - cur.num) < bd) { bd = Math.abs(p.num - cur.num); best = i; } });
+    if (best >= 0) selectPalco(best, !sv.active); else toast(`No hay palcos libres en el nivel ${level}`);
     return;
   }
   if (act === 'nextPalco') {

@@ -63,6 +63,41 @@ function fieldTexture() {
   return t;
 }
 
+// Franja de patrocinadores: nombres escritos sobre fondos de color (no son los logotipos oficiales).
+export const SPONSORS = [
+  { name: 'Corona', bg: '#0d2a6b', fg: '#f6d24a', font: 'italic bold 46px Georgia, serif' },
+  { name: 'Soriana', bg: '#d7262e', fg: '#ffffff', font: 'bold 44px system-ui, sans-serif' },
+  { name: 'Telcel', bg: '#123d8f', fg: '#ffffff', font: 'bold 44px system-ui, sans-serif' },
+  { name: 'LALA', bg: '#ffffff', fg: '#1d4f9c', font: '900 48px system-ui, sans-serif' },
+  { name: 'Peñoles', bg: '#0f6b34', fg: '#ffffff', font: 'bold 42px system-ui, sans-serif' },
+];
+export function sponsorTexture(cells = 10, offset = 0) {
+  const c = document.createElement('canvas');
+  c.width = cells * 256; c.height = 64;
+  const g = c.getContext('2d');
+  for (let k = 0; k < cells; k++) {
+    const sp = SPONSORS[(k + offset) % SPONSORS.length];
+    g.fillStyle = sp.bg; g.fillRect(k * 256, 0, 256, 64);
+    g.fillStyle = sp.fg; g.font = sp.font; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(sp.name, k * 256 + 128, 35);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+function wordTexture(text, bg, fg, font, w = 1024, h = 256) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  if (bg) { g.fillStyle = bg; g.fillRect(0, 0, w, h); }
+  g.fillStyle = fg; g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(text, w / 2, h / 2 + 8);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export function createScenery() {
   const group = new THREE.Group();
   const r = rng(2009);
@@ -106,6 +141,12 @@ export function createScenery() {
     }
     head.add(lamps);
     head.position.z = towerH + 3;
+    const spIdx = corners.indexOf(p) % SPONSORS.length;
+    const sp = [SPONSORS[3], SPONSORS[2], SPONSORS[3], SPONSORS[2]][corners.indexOf(p)] || SPONSORS[spIdx];
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(5, 2.2).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ map: wordTexture(sp.name, sp.bg, sp.fg, sp.font.replace(/\d+px/, '150px'), 512, 224), side: THREE.DoubleSide }));
+    panel.position.set(0, -1.6, towerH - 7);
+    panel.rotation.z = Math.atan2(-p.y, -p.x) + Math.PI / 2;
+    t.add(panel);
     // el frente de los reflectores es -y local: lo giramos hacia el centro y lo inclinamos abajo
     head.rotation.z = Math.atan2(-p.y, -p.x) + Math.PI / 2;
     head.rotateX(0.35);
@@ -123,10 +164,15 @@ export function createScenery() {
   const screen = new THREE.Mesh(new THREE.BoxGeometry(13, 0.8, 7.5).translate(0, 0, 0), [steel, steel, steel, screenMat, steel, steel]);
   screen.position.set(0, -3.2, 27.5);
   screen.castShadow = true; tower.add(screen);
-  const tpos = { x: PRESS.xIn + 6, y: PRESS.halfLen + 20 };
-  tower.position.set(tpos.x, tpos.y, 0);
-  tower.rotation.z = Math.atan2(-tpos.y, -tpos.x) + Math.PI / 2;
-  group.add(tower);
+  // dos torres, una en cada extremo de la tribuna principal, con la pantalla hacia la cancha
+  for (const sy of [1, -1]) {
+    const t = sy === 1 ? tower : tower.clone();
+    const tpos = { x: PRESS.xIn - 4, y: sy * (PRESS.halfLen + 7) };
+    t.position.set(tpos.x, tpos.y, 0);
+    t.rotation.z = Math.atan2(-tpos.y, -tpos.x) + Math.PI / 2;
+    t.scale.set(1.25, 1.25, 1.3);
+    group.add(t);
+  }
 
   // --- Vallas publicitarias: anillo de colores sobre la fachada y alrededor de la cancha
   const palette = [0x1e5bd6, 0xe63a2e, 0xf2c230, 0x1e8a3c, 0xffffff, 0x0d1b3a, 0xef7d1a];
@@ -142,40 +188,39 @@ export function createScenery() {
   });
   group.add(boards);
   // vallas a nivel de cancha
-  const pitchBoards = [];
-  for (let x = -36; x <= 36; x += 6) pitchBoards.push([x, 55.5, 0], [x, -55.5, 0]);
-  for (let y = -50; y <= 50; y += 6) pitchBoards.push([37.5, y, Math.PI / 2], [-37.5, y, Math.PI / 2]);
-  const pb = new THREE.InstancedMesh(new THREE.BoxGeometry(5.8, 0.2, 0.9), new THREE.MeshStandardMaterial({ roughness: 0.5, emissive: 0x111a33, emissiveIntensity: 1 }), pitchBoards.length);
-  pitchBoards.forEach(([x, y, rot], k) => {
-    dummy.position.set(x, y, 0.5); dummy.rotation.set(0, 0, rot); dummy.updateMatrix();
-    pb.setMatrixAt(k, dummy.matrix);
-    pb.setColorAt(k, new THREE.Color(k % 3 === 0 ? 0x1e5bd6 : k % 3 === 1 ? 0x1e8a3c : 0x0d1b3a));
-  });
-  group.add(pb);
+  // [x, y, largo, ángulo]: el frente (normal) mira hacia la cancha
+  for (const [x, y, len, rot, off] of [[0, 55.5, 78, 0, 0], [0, -55.5, 78, Math.PI, 2], [37.5, 0, 106, -Math.PI / 2, 1], [-37.5, 0, 106, Math.PI / 2, 3]]) {
+    const cells = Math.round(len / 6);
+    const mat = new THREE.MeshStandardMaterial({ map: sponsorTexture(cells, off), emissive: 0xffffff, roughness: 0.5 });
+    mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.25;
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.95).rotateX(Math.PI / 2).rotateZ(rot), mat);
+    board.position.set(x, y, 0.55);
+    group.add(board);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(rot === 0 || rot === Math.PI ? len : 0.15, rot === 0 || rot === Math.PI ? 0.15 : len, 1.0), steel);
+    back.position.set(x + Math.sin(rot) * 0.1, y + -Math.cos(rot) * -0.1, 0.5);
+    group.add(back);
+  }
 
-  // --- Asta con banderas de colores detrás de la parte alta (excepto el poniente)
-  const flagRing = ringPolyline(FACADE.d1 + 0.4, 10).filter((p, k) => p.x > -HX + 4 && k % 2 === 0);
-  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.08, 7, 5).rotateX(Math.PI / 2).translate(0, 0, 3.5), steel, flagRing.length);
-  const flagA = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.0, 1.4).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 }), flagRing.length);
-  const flagB = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.0, 1.4).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 }), flagRing.length);
-  const flagCols = [[0x1e8a3c, 0xffffff], [0xe63a2e, 0xffffff], [0x1e5bd6, 0xf2c230], [0x0d1b3a, 0xe63a2e], [0xf2c230, 0x1e8a3c], [0xffffff, 0x1e5bd6], [0xef7d1a, 0x0d1b3a]];
-  flagRing.forEach((p, k) => {
-    dummy.position.set(p.x, p.y, FACADE.z1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
-    poles.setMatrixAt(k, dummy.matrix);
-    const tx = -p.ny, ty = p.nx; // tangente: la bandera ondea a lo largo del anillo
-    const rot = Math.atan2(ty, tx);
-    for (const [mesh, off, ci] of [[flagA, 0.5, 0], [flagB, 1.5, 1]]) {
-      dummy.position.set(p.x + tx * off, p.y + ty * off, FACADE.z1 + 6.2); dummy.rotation.set(0, 0, rot); dummy.updateMatrix();
-      mesh.setMatrixAt(k, dummy.matrix);
-      mesh.setColorAt(k, new THREE.Color(flagCols[k % flagCols.length][ci]));
-    }
-  });
-  group.add(poles, flagA, flagB);
+  // Letras de Corona sobre el talud de pasto del oriente (como se ven desde el aire).
+  // El talud baja hacia el oriente: el plano se recuesta con su normal hacia arriba y al este.
+  {
+    const run = 14, drop = FACADE.z1 - 3;
+    const slope = Math.atan2(drop, run);
+    // texto a lo largo de y (de sur a norte) y recostado sobre la pendiente
+    const geo = new THREE.PlaneGeometry(80, Math.hypot(run, drop) * 0.85).rotateZ(Math.PI / 2).rotateY(slope);
+    const word = new THREE.Mesh(
+      geo,
+      new THREE.MeshStandardMaterial({ map: wordTexture('Corona', null, '#f7f3e6', 'italic bold 230px Georgia, serif', 2048, 300), alphaTest: 0.4, side: THREE.DoubleSide }),
+    );
+    const nx = Math.sin(slope), nz = Math.cos(slope);
+    word.position.set(HX + FACADE.d1 + run / 2 + nx * 0.5, 0, drop / 2 + nz * 0.5);
+    group.add(word);
+  }
 
   // --- Estacionamientos (oriente y sur) con techos solares y autos
   const lots = [
     { x0: 92, x1: 170, y0: -125, y1: 105 },
-    { x0: -55, x1: 88, y0: -170, y1: -112 },
+    { x0: -40, x1: 88, y0: 112, y1: 168 },
   ];
   const carColors = [0xf4f4f4, 0x1b1b1b, 0x9aa0a6, 0xb3261e, 0x2b4fa0, 0xd9d4c7, 0x5a5f63];
   const carGeo = new THREE.BoxGeometry(1.9, 4.4, 1.5).translate(0, 0, 0.75);
@@ -214,17 +259,44 @@ export function createScenery() {
 
   // --- Canchas de entrenamiento al poniente
   const fieldMat = new THREE.MeshStandardMaterial({ map: fieldTexture(), roughness: 1 });
-  for (const fx of [-150, -228]) {
+  const FIELDS = [[-96, -158], [-22, -158], [58, -165]]; // al sur del estadio
+  for (const [fx, fy] of FIELDS) {
     const f = new THREE.Mesh(new THREE.PlaneGeometry(68, 105), fieldMat);
-    f.position.set(fx, 10, 0.04); f.receiveShadow = true; group.add(f);
+    f.position.set(fx, fy, 0.04); f.receiveShadow = true; group.add(f);
   }
+
+  // --- Postes de luz en las canchas de entrenamiento
+  const fieldPoles = [];
+  for (const [fx, fy] of FIELDS) for (const dx of [-37, 37]) for (const dy of [-40, 40]) fieldPoles.push([fx + dx, fy + dy]);
+  const fpole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.25, 18, 6).rotateX(Math.PI / 2).translate(0, 0, 9), steel, fieldPoles.length);
+  const fhead = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 0.5, 1.2), lampMat, fieldPoles.length);
+  fieldPoles.forEach(([x, y], k) => {
+    dummy.position.set(x, y, 0); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); fpole.setMatrixAt(k, dummy.matrix);
+    dummy.position.set(x, y, 18.4); dummy.updateMatrix(); fhead.setMatrixAt(k, dummy.matrix);
+  });
+  fpole.castShadow = true; group.add(fpole, fhead);
+
+  // --- Colonia de casas (bloques bajos) al poniente y al norte
+  const houses = [];
+  for (let x = -300; x >= -430; x -= 13) for (let y = -170; y <= 190; y += 11) if (r() < 0.85) houses.push([x + r() * 2, y, 6 + r() * 3, 8 + r() * 2, 3 + r() * 3.5]);
+  for (let y = 190; y <= 270; y += 12) for (let x = -280; x <= 160; x += 12) if (r() < 0.8) houses.push([x, y + r() * 2, 7 + r() * 3, 6 + r() * 3, 3 + r() * 3]);
+  const houseMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0, 0.5), new THREE.MeshStandardMaterial({ roughness: 0.9 }), houses.length);
+  const houseCols = [0xf1ede4, 0xe6dccb, 0xd8cfc0, 0xf5f2ea, 0xe9d6bf];
+  houses.forEach(([x, y, w, l, h], k) => {
+    dummy.position.set(x, y, 0); dummy.rotation.set(0, 0, 0); dummy.scale.set(w, l, h); dummy.updateMatrix();
+    houseMesh.setMatrixAt(k, dummy.matrix);
+    houseMesh.setColorAt(k, new THREE.Color(houseCols[Math.floor(r() * houseCols.length)]));
+  });
+  dummy.scale.set(1, 1, 1);
+  houseMesh.castShadow = houseMesh.receiveShadow = true;
+  group.add(houseMesh);
 
   // --- Árboles (copa esférica + tronco), en bordes de estacionamientos y caminos
   const treeSpots = [];
   for (let y = -150; y <= 140; y += 9) { treeSpots.push([86 + r() * 3, y]); treeSpots.push([176 + r() * 3, y]); }
   for (let y = -110; y <= 120; y += 8) treeSpots.push([-112 + r() * 4, y]);
-  for (let x = -110; x <= 90; x += 9) treeSpots.push([x, -180 + r() * 3]);
-  for (let k = 0; k < 60; k++) treeSpots.push([-280 + r() * 170, 75 + r() * 40]);
+  for (let x = -140; x <= 100; x += 9) treeSpots.push([x, -222 + r() * 3]);
+  for (let k = 0; k < 60; k++) treeSpots.push([-260 + r() * 130, -80 + r() * 160]);
   const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(2.6, 0), new THREE.MeshStandardMaterial({ color: 0x3f6b2a, roughness: 1, flatShading: true }), treeSpots.length);
   const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.2, 0.3, 3, 5).rotateX(Math.PI / 2).translate(0, 0, 1.5), new THREE.MeshStandardMaterial({ color: 0x6b4f33 }), treeSpots.length);
   treeSpots.forEach(([x, y], k) => {

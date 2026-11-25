@@ -28,10 +28,10 @@ export const FACADE = { d0: UPPER.dEnd, d1: UPPER.dEnd + 0.8, z1: UPPER.zTop + 1
 
 // Techo: media luna blanca que sólo cubre la tribuna poniente (x < 0 en el marco local).
 // Su borde interior es recto sobre la parte media de la grada y el exterior es elíptico.
-export const CANOPY = { x0: -(HX + 18), depth: 40, halfLen: 66, z: 34, thick: 1.0 };
+// Techo de la tribuna principal: bóvedas color crema sobre la grada y teja atrás (rectangular).
+export const CANOPY = { x0: -(HX + 15), depth: 31, halfLen: 52, z: 34, thick: 1.0, segments: 10 };
 export function canopyWidth(y) {
-  const t = y / CANOPY.halfLen;
-  return t >= 1 || t <= -1 ? 0 : CANOPY.depth * Math.sqrt(1 - t * t);
+  return Math.abs(y) < CANOPY.halfLen ? CANOPY.depth : 0;
 }
 export function inCanopy(x, y) {
   return Math.abs(y) < CANOPY.halfLen && x <= CANOPY.x0 && x >= CANOPY.x0 - canopyWidth(y);

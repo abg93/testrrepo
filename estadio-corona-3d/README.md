@@ -7,10 +7,13 @@ App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TS
 
 - **Estadio 3D sobre OpenStreetMap.** Una capa personalizada de MapLibre comparte el contexto WebGL con
   Three.js, georreferenciada en 25.629145, -103.379417.
-- **Forma del TSM** a partir de la foto satelital: un solo tazón (filas A–Q abajo, R–AF arriba), techo
-  en media luna sobre la tribuna poniente con marquesina, edificio principal con 3 niveles de palcos,
-  talud de pasto al oriente, explanada, torres de iluminación, torre con pantalla, banderas, vallas,
-  estacionamientos con autos y techos solares, canchas de entrenamiento, árboles y cerros a lo lejos.
+- **Forma del TSM** a partir de la foto satelital: un solo tazón (filas A–Q abajo, R–AF arriba),
+  tribuna principal al poniente con techo de bóvedas y teja, edificio con 3 niveles de palcos, dos
+  torres con pantalla en sus extremos, talud de pasto al oriente con las letras de Corona, franja azul
+  alrededor de la cancha, explanada, torres de iluminación, banderas, vallas con patrocinadores,
+  estacionamientos con autos y techos solares, canchas de entrenamiento al sur (Centro de Formación),
+  colonia de casas, árboles y cerros a lo lejos. Al abrir, la cámara llega volando (`?sinintro` lo omite).
+- **Patrocinadores:** son los nombres escritos con una tipografía parecida, no los logotipos oficiales.
 - **Boletos.** Al tocar un asiento aparece un boleto con sección, fila, asiento, puerta de acceso,
   precio y código de barras. *Apartar mi lugar* lo guarda en ese navegador (es una demostración, no
   una venta). Los asientos ocupados son de ejemplo.
