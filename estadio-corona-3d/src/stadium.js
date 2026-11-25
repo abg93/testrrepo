@@ -61,7 +61,7 @@ function pitchTexture() {
   c.width = W; c.height = Hh;
   const g = c.getContext('2d');
   for (let i = 0; i < 14; i++) {
-    g.fillStyle = i % 2 ? '#2f8a3a' : '#38a046';
+    g.fillStyle = i % 2 ? '#24692c' : '#2b7a34';
     g.fillRect(0, (i * Hh) / 14, W, Hh / 14 + 1);
   }
   g.strokeStyle = '#f4f4f4';
@@ -110,12 +110,12 @@ export function createStadium() {
   root.rotation.z = -(SITE.bearing * Math.PI) / 180;
   scene.add(root);
 
-  const concrete = new THREE.MeshStandardMaterial({ color: 0xbfc3c4, roughness: 0.9, side: THREE.DoubleSide, flatShading: true });
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xd2d6d2, roughness: 0.9, side: THREE.DoubleSide, flatShading: true });
   const darkConcrete = new THREE.MeshStandardMaterial({ color: 0x8e9496, roughness: 0.9, side: THREE.DoubleSide });
 
   // Suelo / campo
   const inner = new THREE.Shape(closed(ringPolyline(0)).map((p) => new THREE.Vector2(p.x, p.y)));
-  const apron = new THREE.Mesh(new THREE.ShapeGeometry(inner), new THREE.MeshStandardMaterial({ color: 0x2c6e34, roughness: 1 }));
+  const apron = new THREE.Mesh(new THREE.ShapeGeometry(inner), new THREE.MeshStandardMaterial({ color: 0x1f4f27, roughness: 1 }));
   apron.position.z = 0.02; apron.receiveShadow = true; root.add(apron);
   const pitch = new THREE.Mesh(new THREE.PlaneGeometry(68, 105), new THREE.MeshStandardMaterial({ map: pitchTexture(), roughness: 0.95 }));
   pitch.position.z = 0.05; pitch.receiveShadow = true; root.add(pitch);
@@ -145,6 +145,7 @@ export function createStadium() {
     inst.userData.section = s;
     s.mesh = inst; s.stand = stand;
     s.baseColor = new THREE.Color(ZONES[s.zone].color);
+    s.realColor = new THREE.Color(s.tier === 'lower' ? '#cfe3d3' : '#c3d9c8');
     root.add(inst);
   }
 
@@ -171,12 +172,26 @@ export function createStadium() {
   const glass = new THREE.Mesh(new THREE.BoxGeometry(pressW, pressL, 5).translate(pressX, 0, pressH + 2.5), glassMat);
   glass.castShadow = true; root.add(glass);
 
-  // Talud de pasto detrás de la tribuna oriente
+  // Talud de pasto curvo detrás de la tribuna oriente (sigue el contorno del tazón)
   const bb = new Builder();
-  const bx0 = HX + FACADE.d1, by = HY - R + 6;
-  bb.quad({ x: bx0, y: -by, z: FACADE.z1 - 3 }, { x: bx0 + 16, y: -by, z: 0 }, { x: bx0 + 16, y: by, z: 0 }, { x: bx0, y: by, z: FACADE.z1 - 3 });
+  const eastRing = ringPolyline(FACADE.d1, 16)
+    .filter((p) => p.x > HX * 0.55)
+    .sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x));
+  for (let i = 0; i < eastRing.length - 1; i++) {
+    const p = eastRing[i], q = eastRing[i + 1];
+    const out = (o, k) => ({ x: o.x + o.nx * k, y: o.y + o.ny * k });
+    bb.quad(V(p, FACADE.z1 - 3), V(out(p, 14), 0), V(out(q, 14), 0), V(q, FACADE.z1 - 3));
+  }
   const berm = new THREE.Mesh(bb.geometry(), new THREE.MeshStandardMaterial({ color: 0x4f8f3a, roughness: 1, side: THREE.DoubleSide }));
   berm.receiveShadow = true; root.add(berm);
+
+  // Edificios de techo de teja junto al estadio (norponiente y surponiente)
+  const tile = new THREE.MeshStandardMaterial({ color: 0xa8432f, roughness: 0.8 });
+  for (const [x, y, w, l, h, rot] of [[-14, 104, 46, 14, 8, -0.12], [-72, -90, 70, 22, 9, -0.55]]) {
+    const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, l, h).translate(0, 0, h / 2), [darkConcrete, darkConcrete, darkConcrete, darkConcrete, tile, darkConcrete]);
+    bldg.position.set(x, y, 0); bldg.rotation.z = rot;
+    bldg.castShadow = bldg.receiveShadow = true; root.add(bldg);
+  }
 
   // Techo en media luna sobre la tribuna poniente
   const steps = 40;

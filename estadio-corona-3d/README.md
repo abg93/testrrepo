@@ -9,7 +9,9 @@ App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TS
   Three.js. La escena está en metros y se georreferencia en 25.629145, -103.379417.
 - **Forma del TSM.** El modelo sigue la foto satelital: un solo tazón alrededor de la cancha
   (girada ≈4°), con un techo en media luna sólo sobre la tribuna poniente, el edificio de palcos y
-  prensa detrás de ella, un talud de pasto detrás de la tribuna oriente y unos 29,600 asientos.
+  prensa detrás de ella, un talud de pasto curvo detrás de la tribuna oriente, los edificios de
+  teja de las esquinas y unos 28,200 asientos. Los asientos se ven en su color real (verde menta);
+  el panel permite colorearlos por zona de precio o por sol/sombra.
 - **Asientos clicables por sección.** Son 40 secciones: 101–120 en la parte baja (filas 1–17) y
   201–220 en la parte alta (filas 18–32), separadas por un pasillo. Cada una tiene sus asientos instanciados. Al pasar el cursor se ve sección, fila
   y asiento. Al hacer clic se elige el asiento, se resalta su sección y el mapa vuela hasta él.

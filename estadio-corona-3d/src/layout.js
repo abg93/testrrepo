@@ -3,9 +3,11 @@
 // Todo se define como desplazamientos "d" hacia afuera de un rectángulo redondeado
 // que rodea la cancha, de modo que filas, palcos, fachada y techo comparten trazo.
 
-export const HX = 42; // medio ancho del borde interior de la grada
-export const HY = 62; // medio largo
-export const R = 10; // radio de esquina en d = 0
+// Medidas tomadas de la foto satelital: la grada empieza ~5 m después de la línea de banda
+// y las esquinas interiores son casi rectas; por fuera el tazón queda muy redondeado.
+export const HX = 39; // medio ancho del borde interior de la grada
+export const HY = 58; // medio largo
+export const R = 6; // radio de esquina en d = 0
 const LX = HX - R;
 const LY = HY - R;
 
@@ -26,7 +28,7 @@ export const FACADE = { d0: UPPER.dEnd, d1: UPPER.dEnd + 0.8, z1: UPPER.zTop + 1
 
 // Techo: media luna blanca que sólo cubre la tribuna poniente (x < 0 en el marco local).
 // Su borde interior es recto sobre la parte media de la grada y el exterior es elíptico.
-export const CANOPY = { x0: -(HX + 10), depth: 40, halfLen: 58, z: 26, thick: 1.0 };
+export const CANOPY = { x0: -(HX + 18), depth: 40, halfLen: 66, z: 24, thick: 1.0 };
 export function canopyWidth(y) {
   const t = y / CANOPY.halfLen;
   return t >= 1 || t <= -1 ? 0 : CANOPY.depth * Math.sqrt(1 - t * t);

@@ -17,7 +17,7 @@ const state = {
   minutes: 17 * 60,
   sun: null,
   sunLocal: [0, 0, -1],
-  sunMap: false,
+  colorMode: 'real', // 'real' | 'zona' | 'sol'
   roof: true,
   section: null,
   seatIndex: -1,
@@ -157,8 +157,9 @@ function currentSeat() {
 function recolor(sec) {
   const highlighted = sec === state.section;
   for (let i = 0; i < sec.seats.length; i++) {
-    if (state.sunMap && sec.sunlit) c.copy(sec.sunlit[i] ? COLOR_SUN : COLOR_SHADE);
-    else c.copy(sec.baseColor);
+    if (state.colorMode === 'sol' && sec.sunlit) c.copy(sec.sunlit[i] ? COLOR_SUN : COLOR_SHADE);
+    else if (state.colorMode === 'zona') c.copy(sec.baseColor);
+    else c.copy(sec.realColor);
     if (priceOf(sec) > state.maxPrice) c.lerp(GREY, 0.85);
     if (highlighted) c.lerp(WHITE, 0.35);
     if (highlighted && i === state.seatIndex) c.copy(COLOR_SEL);
@@ -302,7 +303,7 @@ function updateSun() {
     map.setPaintProperty('osm', 'raster-saturation', -0.5 * (1 - day));
     map.setPaintProperty('fondo', 'background-color', `hsl(42, ${20 + 10 * day}%, ${12 + 60 * day}%)`);
   }
-  if (state.sunMap) { computeSunMap(); recolorAll(); }
+  if (state.colorMode === 'sol') { computeSunMap(); recolorAll(); }
   if (currentSeat()) renderCard();
   if (sv.active) updateSvLabel();
   map.triggerRepaint();
@@ -371,12 +372,13 @@ for (const sec of sections) {
   b.addEventListener('click', () => selectSection(sec, -1, true));
   $(sec.tier === 'upper' ? 'sectionsUpper' : 'sectionsLower').appendChild(b);
 }
-$('optSunMap').addEventListener('change', (e) => {
-  state.sunMap = e.target.checked;
-  if (state.sunMap) computeSunMap(); else $('sunStats').hidden = true;
+document.querySelectorAll('input[name="colorMode"]').forEach((el) => el.addEventListener('change', () => {
+  if (!el.checked) return;
+  state.colorMode = el.value;
+  if (state.colorMode === 'sol') computeSunMap(); else $('sunStats').hidden = true;
   recolorAll();
   map.triggerRepaint();
-});
+}));
 $('optRoof').addEventListener('change', (e) => { state.roof = e.target.checked; map.triggerRepaint(); });
 $('optShadows').addEventListener('change', (e) => {
   stadium.lights.sun.castShadow = e.target.checked;
