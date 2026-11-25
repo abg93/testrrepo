@@ -63,3 +63,14 @@ sobre la foto satelital; se puede afinar hasta que el modelo coincida con el est
   no el plano oficial.
 - Los mosaicos vienen de `tile.openstreetmap.org`. Para uso con mucho tráfico conviene usar un
   proveedor propio, según la [política de uso de mosaicos de OSM](https://operations.osmfoundation.org/policies/tiles/).
+
+## Publicar con contraseña (GitHub Pages)
+
+```bash
+TSM_PASSWORD='la-contraseña' npm run build:privado   # genera dist-privado/
+```
+
+`dist-privado/` contiene sólo un formulario de contraseña y la app **cifrada** (AES-256-GCM con
+clave PBKDF2). Sin la contraseña correcta el contenido no se puede leer. Para cambiar la contraseña,
+vuelve a correr el comando con otra y publica de nuevo `dist-privado/` en la rama `gh-pages`.
+El código fuente del repositorio sigue siendo público si el repositorio lo es.
