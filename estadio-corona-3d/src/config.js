@@ -30,3 +30,13 @@ export const PRICES = {
   altaCab: 220,
 };
 export const CURRENCY = 'MXN';
+
+// Palcos VIP del edificio poniente: precio por persona según el nivel (DE EJEMPLO).
+export const PALCO_PRICES = { 1: 5400, 2: 4900, 3: 4200 };
+
+// Hora del silbatazo (minutos desde medianoche, hora local). Se puede cambiar con ?silbatazo=19:00
+export const KICKOFF = (() => {
+  const v = params.get('silbatazo');
+  const m = v && /^(\d{1,2}):(\d{2})$/.exec(v);
+  return m ? +m[1] * 60 + +m[2] : 19 * 60;
+})();

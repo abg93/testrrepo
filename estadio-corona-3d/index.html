@@ -2,18 +2,22 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Estadio TSM 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&display=swap" />
   </head>
   <body>
     <div id="map"></div>
 
+    <button id="openPanel" class="chip-btn" hidden>🎟️ Escoger boletos</button>
+
     <aside id="panel">
       <header>
-        <button id="panelToggle" aria-label="Mostrar u ocultar panel">☰</button>
+        <button id="panelToggle" aria-label="Ocultar panel">✕</button>
         <div>
           <h1>Estadio <span>TSM</span> Corona</h1>
-          <p class="sub">Territorio Santos Modelo · Torreón · <span id="capacity">—</span> asientos modelados</p>
+          <p class="sub">Territorio Santos Modelo · Torreón · <span id="capacity">—</span> asientos</p>
         </div>
       </header>
       <div class="panel-body">
@@ -24,62 +28,61 @@
           <input type="range" id="budget" />
           <div id="budgetCount" class="stats"></div>
         </div>
-        <h2>Secciones <small>(clic para ir)</small></h2>
-        <div class="tier-label">Parte alta · filas 18–32</div>
+        <button id="vipBtn" class="vip-row">⭐ Palcos VIP <span id="vipFrom"></span></button>
+        <h2>Secciones <small>(toca para ir)</small></h2>
+        <div class="tier-label">Parte alta · filas R–AF</div>
         <div id="sectionsUpper" class="sections"></div>
-        <div class="tier-label">Parte baja · filas 1–17</div>
+        <div class="tier-label">Parte baja · filas A–Q</div>
         <div id="sectionsLower" class="sections"></div>
-        <h2>Capas</h2>
+        <h2>Ver asientos por</h2>
         <div class="seg" role="radiogroup" aria-label="Color de los asientos">
           <label><input type="radio" name="colorMode" id="cmReal" value="real" checked /><span>Real</span></label>
+          <label><input type="radio" name="colorMode" id="cmLibre" value="libre" /><span>Libres</span></label>
           <label><input type="radio" name="colorMode" id="cmZona" value="zona" /><span>Zonas</span></label>
-          <label><input type="radio" name="colorMode" id="cmSol" value="sol" /><span>Sol/sombra</span></label>
+          <label><input type="radio" name="colorMode" id="cmSol" value="sol" /><span>Sol</span></label>
         </div>
-        <label class="toggle"><input type="checkbox" id="optRoof" checked /> Mostrar techo</label>
-        <label class="toggle"><input type="checkbox" id="optShadows" checked /> Sombras proyectadas</label>
-        <div id="sunStats" class="stats" hidden></div>
+        <div id="modeStats" class="stats" hidden></div>
+        <h2>Capas</h2>
+        <label class="toggle"><input type="checkbox" id="optRoof" checked /> Techo</label>
+        <label class="toggle"><input type="checkbox" id="optShadows" checked /> Sombras</label>
+        <label class="toggle"><input type="checkbox" id="optScenery" checked /> Entorno (estacionamiento, árboles, canchas)</label>
         <button id="resetView" class="ghost">⟲ Vista general</button>
       </div>
     </aside>
 
-    <section id="card" hidden>
-      <button class="close" id="cardClose" aria-label="Cerrar">×</button>
-      <div class="kicker" id="cardKicker"></div>
-      <h3 id="cardTitle"></h3>
-      <dl id="cardFacts"></dl>
-      <div id="cardSun" class="sunbadge"></div>
-      <button id="btnSeatView" class="primary">👁 Vista desde el asiento</button>
-      <p class="hint" id="cardHint">Haz clic en un asiento del estadio para elegirlo.</p>
+    <div id="hovercard" hidden></div>
+
+    <section id="ticketWrap" hidden>
+      <div id="ticketPill" class="pill" hidden></div>
+      <div id="ticket"></div>
+      <div id="ticketActions" class="t-actions"></div>
     </section>
 
-    <div id="tooltip" hidden></div>
+    <div id="toast" role="status" hidden></div>
 
     <div id="seatview" hidden>
       <canvas id="svCanvas"></canvas>
-      <div class="sv-top">
-        <button id="svBack">← Volver al mapa</button>
-        <div id="svLabel"></div>
-        <div class="sv-nav">
-          <button id="svPrev" title="Asiento anterior">◀</button>
-          <button id="svNext" title="Asiento siguiente">▶</button>
-        </div>
+      <button id="svBack" class="chip-btn">‹ Regresar <kbd>Esc</kbd></button>
+      <div class="sv-nav">
+        <button id="svPrev" title="Lugar anterior">◀</button>
+        <button id="svNext" title="Lugar siguiente">▶</button>
       </div>
-      <p class="sv-hint">Arrastra para mirar alrededor · rueda / pellizco para acercar</p>
     </div>
 
-    <footer id="timebar">
-      <div class="tb-row">
-        <input type="date" id="date" />
-        <button id="play" title="Reproducir día">▶</button>
-        <input type="range" id="time" min="0" max="1439" step="1" />
+    <header id="timebar">
+      <button id="play" title="Reproducir el día">▶</button>
+      <div class="tb-track">
+        <div id="kickoff" class="kickoff"><span>SILBATAZO</span></div>
+        <div id="matchBand" class="match-band"></div>
+        <input type="range" id="time" min="360" max="1380" step="5" aria-label="Hora del día" />
+        <div id="ticks" class="ticks"></div>
+      </div>
+      <div class="tb-clock">
         <output id="timeLabel">--:--</output>
+        <label class="tb-date"><span id="dateLabel"></span><input type="date" id="date" aria-label="Fecha" /></label>
       </div>
-      <div class="tb-info">
-        <span id="sunAlt"></span>
-        <span id="sunTimes"></span>
-        <span class="tz">Hora local (UTC−6)</span>
-      </div>
-    </footer>
+      <div class="tb-info"><span id="sunAlt"></span><span id="sunTimes"></span></div>
+    </header>
 
     <script type="module" src="/src/main.js"></script>
   </body>

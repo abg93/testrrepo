@@ -28,7 +28,7 @@ export const FACADE = { d0: UPPER.dEnd, d1: UPPER.dEnd + 0.8, z1: UPPER.zTop + 1
 
 // Techo: media luna blanca que sólo cubre la tribuna poniente (x < 0 en el marco local).
 // Su borde interior es recto sobre la parte media de la grada y el exterior es elíptico.
-export const CANOPY = { x0: -(HX + 18), depth: 40, halfLen: 66, z: 24, thick: 1.0 };
+export const CANOPY = { x0: -(HX + 18), depth: 40, halfLen: 66, z: 34, thick: 1.0 };
 export function canopyWidth(y) {
   const t = y / CANOPY.halfLen;
   return t >= 1 || t <= -1 ? 0 : CANOPY.depth * Math.sqrt(1 - t * t);
@@ -38,7 +38,7 @@ export function inCanopy(x, y) {
 }
 
 // Edificio de palcos y prensa detrás de la tribuna poniente, bajo el techo.
-export const PRESS = { xIn: -(HX + FACADE.d1), xOut: -(HX + FACADE.d1 + 10), halfLen: 40, z1: 22 };
+export const PRESS = { xIn: -(HX + FACADE.d1), xOut: -(HX + FACADE.d1 + 12), halfLen: 44, z1: 31 };
 export function inPress(x, y) {
   return x <= PRESS.xIn && x >= PRESS.xOut && Math.abs(y) <= PRESS.halfLen;
 }
@@ -129,6 +129,39 @@ export function structureHeight(d) {
   return 0;
 }
 
+// ---- Filas con letra, puertas de acceso y ocupación de ejemplo
+export function rowLabel(n) {
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return n <= 26 ? A[n - 1] : 'A' + A[n - 27];
+}
+export const GATES = { E: 'Puerta 1', NE: 'Puerta 2', N: 'Puerta 3', NW: 'Puerta 4', W: 'Puerta 5', SW: 'Puerta 6', S: 'Puerta 7', SE: 'Puerta 8' };
+
+// Ocupación determinista (siempre la misma para cada lugar): ~45 % vendido. Es de ejemplo.
+export function isTaken(a, b, c) {
+  let h = Math.imul(a, 73856093) ^ Math.imul(b, 19349663) ^ Math.imul(c, 83492791);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) % 100 < 45;
+}
+
+// ---- Palcos VIP en la cara oriente del edificio poniente (3 niveles × 20 palcos)
+export const PALCO = { levels: [17.5, 21.5, 25.5], width: 4.2, height: 3.2, count: 20 };
+export function buildPalcos(prices) {
+  const out = [];
+  PALCO.levels.forEach((z, li) => {
+    for (let k = 0; k < PALCO.count; k++) {
+      const y = -((PALCO.count - 1) * PALCO.width) / 2 + k * PALCO.width;
+      const level = li + 1, num = k + 1;
+      out.push({
+        id: `P${level}-${num}`, level, num, x: PRESS.xIn, y, z,
+        eye: { x: PRESS.xIn + 1.2, y, z: z + 1.25 },
+        price: prices[level], taken: isTaken(900 + level, 1, num),
+      });
+    }
+  });
+  return out;
+}
+
 // ---- Secciones y asientos
 import { PRICES } from './config.js';
 
@@ -159,7 +192,7 @@ function buildSeats(piece, tier) {
     const start = (L - n * SEAT_PITCH) / 2 + SEAT_PITCH / 2;
     for (let k = 0; k < n; k++) {
       const p = pointOn(piece, d, (start + k * SEAT_PITCH) / L);
-      seats.push({ row: T.firstRow + r, num: k + 1, x: p.x, y: p.y, z, nx: p.nx, ny: p.ny, d });
+      seats.push({ row: T.firstRow + r, rowL: rowLabel(T.firstRow + r), num: k + 1, x: p.x, y: p.y, z, nx: p.nx, ny: p.ny, d });
     }
   }
   return seats;
@@ -188,9 +221,12 @@ export function buildSections() {
           seats,
           rows: T.rows,
           firstRow: T.firstRow,
-          rowRange: `${T.firstRow}–${T.firstRow + T.rows - 1}`,
+          rowRange: `${rowLabel(T.firstRow)}–${rowLabel(T.firstRow + T.rows - 1)}`,
+          gate: GATES[side.key],
           center: mid,
         });
+        const sec = sections[sections.length - 1];
+        sec.seats.forEach((st) => { st.taken = isTaken(sec.number, st.row, st.num); });
       });
     }
   }

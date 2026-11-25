@@ -5,30 +5,22 @@ App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TS
 
 ## Qué hace
 
-- **Estadio 3D en el mapa.** Una capa personalizada de MapLibre comparte el contexto WebGL con
-  Three.js. La escena está en metros y se georreferencia en 25.629145, -103.379417.
-- **Forma del TSM.** El modelo sigue la foto satelital: un solo tazón alrededor de la cancha
-  (girada ≈4°), con un techo en media luna sólo sobre la tribuna poniente, el edificio de palcos y
-  prensa detrás de ella, un talud de pasto curvo detrás de la tribuna oriente, los edificios de
-  teja de las esquinas y unos 28,200 asientos. Los asientos se ven en su color real (verde menta);
-  el panel permite colorearlos por zona de precio o por sol/sombra.
-- **Asientos clicables por sección.** Son 40 secciones: 101–120 en la parte baja (filas 1–17) y
-  201–220 en la parte alta (filas 18–32), separadas por un pasillo. Cada una tiene sus asientos instanciados. Al pasar el cursor se ve sección, fila
-  y asiento. Al hacer clic se elige el asiento, se resalta su sección y el mapa vuela hasta él.
-  Las secciones del panel izquierdo llevan directo a cada una.
-- **Vista desde el asiento.** Abre una cámara en primera persona a la altura de los ojos del
-  asiento elegido, con cielo físico (`Sky`) y sombras. Se mira arrastrando y se acerca con la
-  rueda o pellizcando. ◀ ▶ cambian al asiento contiguo.
-- **Barra de horario.** Elige fecha y hora local (UTC−6) y el sol se mueve con
-  [SunCalc](https://github.com/mourner/suncalc). Las sombras del techo y las gradas se proyectan
-  sobre la cancha y el mapa. De noche se encienden las luminarias y el mapa se oscurece. ▶
-  reproduce el día a una hora por segundo.
-- **Precios por zona.** Cada zona tiene un precio de ejemplo en MXN (editable en `src/config.js`,
-  constante `PRICES`). Se ve en la leyenda, el tooltip, la tarjeta y la vista desde el asiento.
-  El control *Mi presupuesto* atenúa las secciones que cuestan más.
-- **¿Sol o sombra?** La tarjeta del asiento dice si le da el sol a esa hora. La opción
-  *Colorear asientos por sol / sombra* pinta todo el estadio y da el porcentaje de asientos al sol.
-  El cálculo es analítico: el rayo hacia el sol se cruza con el techo y con la silueta de las gradas.
+- **Estadio 3D sobre OpenStreetMap.** Una capa personalizada de MapLibre comparte el contexto WebGL con
+  Three.js, georreferenciada en 25.629145, -103.379417.
+- **Forma del TSM** a partir de la foto satelital: un solo tazón (filas A–Q abajo, R–AF arriba), techo
+  en media luna sobre la tribuna poniente con marquesina, edificio principal con 3 niveles de palcos,
+  talud de pasto al oriente, explanada, torres de iluminación, torre con pantalla, banderas, vallas,
+  estacionamientos con autos y techos solares, canchas de entrenamiento, árboles y cerros a lo lejos.
+- **Boletos.** Al tocar un asiento aparece un boleto con sección, fila, asiento, puerta de acceso,
+  precio y código de barras. *Apartar mi lugar* lo guarda en ese navegador (es una demostración, no
+  una venta). Los asientos ocupados son de ejemplo.
+- **Palcos VIP** (60, en 3 niveles) con precio por persona, boleto propio y vista desde el palco.
+- **Vista desde el lugar** con cielo, sombras y cerros; se mira arrastrando y se acerca con la rueda o
+  pellizcando.
+- **Barra de horario** con la marca de *silbatazo* (cámbiala con `?silbatazo=19:00`). El sol se
+  mueve con [SunCalc](https://github.com/mourner/suncalc) y el boleto dice si el lugar queda al sol.
+- **Ver asientos por:** color real, libres/ocupados, zona de precio o sol/sombra.
+- **Precios de ejemplo** por zona y presupuesto máximo (`PRICES` y `PALCO_PRICES` en `src/config.js`).
 
 ## Uso
 
@@ -58,6 +50,7 @@ sobre la foto satelital; se puede afinar hasta que el modelo coincida con el est
 | `src/layout.js` | Trazado paramétrico: niveles, palcos, techo, secciones y asientos |
 | `src/stadium.js` | Construcción de la escena Three.js (gradas, asientos, techo, cancha, luces, cielo) |
 | `src/sun.js` | Posición solar y prueba sol/sombra por asiento |
+| `src/scenery.js` | Entorno: torres de luz, pantalla, banderas, estacionamientos, árboles, cerros |
 | `src/main.js` | Mapa, capa 3D, selección, vista desde el asiento y barra de horario |
 
 ## Limitaciones
