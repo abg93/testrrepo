@@ -220,7 +220,7 @@ function renderCard() {
   card.hidden = false;
   const seat = currentSeat();
   $('cardKicker').textContent = `${sec.tierLabel} · ${ZONES[sec.zone].label}`;
-  const facts = [['Precio', `<b class="price">${money(priceOf(sec))}</b>`], ['Ubicación', sec.sideName], ['Filas', sec.rows], ['Asientos', sec.seats.length.toLocaleString('es-MX')]];
+  const facts = [['Precio', `<b class="price">${money(priceOf(sec))}</b>`], ['Ubicación', sec.sideName], ['Filas', sec.rowRange], ['Asientos', sec.seats.length.toLocaleString('es-MX')]];
   if (seat) {
     $('cardTitle').textContent = `Sección ${sec.number} · Fila ${seat.row} · Asiento ${seat.num}`;
     const w = localToWorld(seat.x, seat.y, seat.z);
@@ -397,7 +397,7 @@ $('btnSeatView').addEventListener('click', () => {
   if (!sec) return;
   if (state.seatIndex < 0) {
     // asiento central de la fila media
-    const midRow = Math.ceil(sec.rows / 2);
+    const midRow = sec.firstRow + Math.floor(sec.rows / 2);
     const rowSeats = sec.seats.map((st, i) => [st, i]).filter(([st]) => st.row === midRow);
     selectSection(sec, rowSeats[Math.floor(rowSeats.length / 2)][1], false);
   }

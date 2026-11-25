@@ -1,6 +1,6 @@
 import SunCalc from 'suncalc';
 import { SITE } from './config.js';
-import { sdf, structureHeight, ROOF, FACADE } from './layout.js';
+import { sdf, structureHeight, FACADE, CANOPY, PRESS, inCanopy, inPress } from './layout.js';
 
 const OFF = SITE.utcOffsetHours * 3600e3;
 
@@ -46,26 +46,24 @@ export function worldToLocalDir(dir) {
 }
 
 const EYE = 0.9; // altura de la cabeza (sentado) sobre la grada
-const roofBottom = ROOF.z - ROOF.thick / 2;
+const canopyBottom = CANOPY.z - CANOPY.thick / 2;
+const zMax = Math.max(FACADE.z1, PRESS.z1);
 
 // ¿Le da el sol a la cabeza de quien se sienta en (x,y,z)? Cálculo analítico:
-// intersección con el plano del techo + marcha sobre la silueta de la grada.
+// intersección con el techo poniente + marcha sobre la grada y el edificio de prensa.
 export function seatSunlit(x, y, z, L) {
   if (L[2] <= 0.0) return false;
   const ez = z + EYE;
-  // Techo (anillo plano entre ROOF.dIn y ROOF.dOut)
-  if (ez < roofBottom) {
-    const t = (roofBottom - ez) / L[2];
-    const d = sdf(x + L[0] * t, y + L[1] * t);
-    if (d >= ROOF.dIn && d <= ROOF.dOut) return false;
+  if (ez < canopyBottom) {
+    const t = (canopyBottom - ez) / L[2];
+    if (inCanopy(x + L[0] * t, y + L[1] * t)) return false;
   }
-  // Gradas y fachada
-  const zMax = FACADE.z1;
-  const step = 0.7;
-  for (let t = 0.8; t < 450; t += step) {
+  for (let t = 0.8; t < 450; t += 0.7) {
     const pz = ez + L[2] * t;
     if (pz > zMax) break;
-    const d = sdf(x + L[0] * t, y + L[1] * t);
+    const px = x + L[0] * t, py = y + L[1] * t;
+    if (pz < PRESS.z1 && inPress(px, py)) return false;
+    const d = sdf(px, py);
     if (d > 0 && pz < structureHeight(d)) return false;
   }
   return true;

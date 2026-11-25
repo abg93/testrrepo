@@ -13,8 +13,8 @@ export const SITE = {
   lat: num('lat', 25.629145),
   lng: num('lng', -103.379417),
   // Rumbo (grados desde el norte, sentido horario) del eje largo de la cancha.
-  // Valor aproximado: ajústalo con ?bearing= para alinearlo con la huella de OSM.
-  bearing: num('bearing', 0),
+  // ≈4°, medido sobre la foto satelital del TSM. Se puede afinar con ?bearing=.
+  bearing: num('bearing', 4),
   // Torreón usa America/Monterrey: UTC-6 todo el año (sin horario de verano desde 2022).
   utcOffsetHours: -6,
 };

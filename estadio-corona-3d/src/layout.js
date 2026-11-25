@@ -9,21 +9,40 @@ export const R = 10; // radio de esquina en d = 0
 const LX = HX - R;
 const LY = HY - R;
 
-export const LOWER = { rows: 22, depth: 0.85, riser: 0.42, z0: 1.2, d0: 0 };
+// El TSM es un solo tazón continuo alrededor de la cancha. Se divide en parte baja
+// (filas 1–17) y parte alta (filas 18–32), separadas por un pasillo transversal.
+export const LOWER = { rows: 17, depth: 0.85, riser: 0.42, z0: 1.2, d0: 0, firstRow: 1, rail: 0.5 };
 LOWER.dEnd = LOWER.d0 + LOWER.rows * LOWER.depth;
 LOWER.zTop = LOWER.z0 + (LOWER.rows - 1) * LOWER.riser;
 
-export const PALCOS = { d0: LOWER.dEnd, d1: LOWER.dEnd + 3.5, z0: LOWER.zTop, z1: 15.0 };
+export const AISLE = { d0: LOWER.dEnd, d1: LOWER.dEnd + 1.6, z: LOWER.zTop };
 
-export const UPPER = { rows: 12, depth: 0.9, riser: 0.62, z0: 15.6, d0: PALCOS.d1 };
+export const UPPER = { rows: 15, depth: 0.85, riser: 0.5, d0: AISLE.d1, firstRow: LOWER.rows + 1, rail: 1.1 };
+UPPER.z0 = LOWER.zTop + 0.9;
 UPPER.dEnd = UPPER.d0 + UPPER.rows * UPPER.depth;
 UPPER.zTop = UPPER.z0 + (UPPER.rows - 1) * UPPER.riser;
 
-export const FACADE = { d0: UPPER.dEnd, d1: UPPER.dEnd + 0.8, z1: UPPER.zTop + 1.8 };
-export const ROOF = { dIn: 4, dOut: FACADE.d1 + 1.2, z: 32, thick: 1.2 };
+export const FACADE = { d0: UPPER.dEnd, d1: UPPER.dEnd + 0.8, z1: UPPER.zTop + 1.2 };
+
+// Techo: media luna blanca que sólo cubre la tribuna poniente (x < 0 en el marco local).
+// Su borde interior es recto sobre la parte media de la grada y el exterior es elíptico.
+export const CANOPY = { x0: -(HX + 10), depth: 40, halfLen: 58, z: 26, thick: 1.0 };
+export function canopyWidth(y) {
+  const t = y / CANOPY.halfLen;
+  return t >= 1 || t <= -1 ? 0 : CANOPY.depth * Math.sqrt(1 - t * t);
+}
+export function inCanopy(x, y) {
+  return Math.abs(y) < CANOPY.halfLen && x <= CANOPY.x0 && x >= CANOPY.x0 - canopyWidth(y);
+}
+
+// Edificio de palcos y prensa detrás de la tribuna poniente, bajo el techo.
+export const PRESS = { xIn: -(HX + FACADE.d1), xOut: -(HX + FACADE.d1 + 10), halfLen: 40, z1: 22 };
+export function inPress(x, y) {
+  return x <= PRESS.xIn && x >= PRESS.xOut && Math.abs(y) <= PRESS.halfLen;
+}
 
 export const SEAT_PITCH = 0.5; // ancho por asiento
-const AISLE = 0.6; // pasillo en cada extremo de sección
+const SIDE_AISLE = 0.6; // pasillo en cada extremo de sección
 
 // ---- Piezas base del perímetro (sentido antihorario, empezando en el SE del lateral oriente)
 const line = (a, b, n) => ({ kind: 'line', a, b, n });
@@ -102,7 +121,7 @@ export function sdf(x, y) {
 export function structureHeight(d) {
   if (d < 0) return 0;
   if (d < LOWER.dEnd) return LOWER.z0 + Math.floor(d / LOWER.depth) * LOWER.riser;
-  if (d < PALCOS.d1) return PALCOS.z1;
+  if (d < AISLE.d1) return AISLE.z;
   if (d < UPPER.dEnd) return UPPER.z0 + Math.floor((d - UPPER.d0) / UPPER.depth) * UPPER.riser;
   if (d < FACADE.d1) return FACADE.z1;
   return 0;
@@ -134,11 +153,11 @@ function buildSeats(piece, tier) {
     const d = T.d0 + r * T.depth + T.depth * 0.6;
     const z = T.z0 + r * T.riser;
     const L = pieceLength(piece, d);
-    const n = Math.floor((L - 2 * AISLE) / SEAT_PITCH);
+    const n = Math.floor((L - 2 * SIDE_AISLE) / SEAT_PITCH);
     const start = (L - n * SEAT_PITCH) / 2 + SEAT_PITCH / 2;
     for (let k = 0; k < n; k++) {
       const p = pointOn(piece, d, (start + k * SEAT_PITCH) / L);
-      seats.push({ row: r + 1, num: k + 1, x: p.x, y: p.y, z, nx: p.nx, ny: p.ny, d });
+      seats.push({ row: T.firstRow + r, num: k + 1, x: p.x, y: p.y, z, nx: p.nx, ny: p.ny, d });
     }
   }
   return seats;
@@ -153,18 +172,21 @@ export function buildSections() {
       parts.forEach((piece, i) => {
         const zone = zoneFor(side, i, tier);
         const seats = buildSeats(piece, tier);
-        const mid = pointOn(piece, (tier === 'lower' ? LOWER : UPPER).d0 + 8, 0.5);
+        const T = tier === 'lower' ? LOWER : UPPER;
+        const mid = pointOn(piece, T.d0 + (T.rows * T.depth) / 2, 0.5);
         sections.push({
           id: String(number),
           number: number++,
           tier,
-          tierLabel: tier === 'lower' ? 'Nivel inferior' : 'Nivel superior',
+          tierLabel: tier === 'lower' ? 'Parte baja' : 'Parte alta',
           side: side.key,
           sideName: side.name,
           zone,
           piece,
           seats,
-          rows: (tier === 'lower' ? LOWER : UPPER).rows,
+          rows: T.rows,
+          firstRow: T.firstRow,
+          rowRange: `${T.firstRow}–${T.firstRow + T.rows - 1}`,
           center: mid,
         });
       });

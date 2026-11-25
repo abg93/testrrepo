@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import {
-  LOWER, UPPER, PALCOS, FACADE, ROOF, ZONES,
-  buildSections, polylineOf, ringPolyline,
+  LOWER, UPPER, AISLE, FACADE, CANOPY, PRESS, ZONES, HX, HY, R,
+  buildSections, polylineOf, ringPolyline, canopyWidth,
 } from './layout.js';
 import { SITE } from './config.js';
 
@@ -39,12 +39,12 @@ function standGeometry(piece, T) {
     const d0 = T.d0 + r * T.depth, d1 = d0 + T.depth;
     const z = T.z0 + r * T.riser;
     const F = polylineOf(piece, d0), B = polylineOf(piece, d1);
-    wall(b, F, r === 0 ? (T === LOWER ? 0 : prevZ - 1.2) : prevZ, z); // contrahuella
+    wall(b, F, r === 0 ? (T === LOWER ? 0 : AISLE.z) : prevZ, z); // contrahuella
     band(b, F, B, z); // huella
     prevZ = z;
   }
   const back = polylineOf(piece, T.d0 + T.rows * T.depth);
-  wall(b, back, prevZ, prevZ + 1.1); // barandal trasero
+  wall(b, back, prevZ, prevZ + T.rail); // barandal trasero
   return b.geometry();
 }
 
@@ -148,47 +148,75 @@ export function createStadium() {
     root.add(inst);
   }
 
-  // Palcos (anillo entre niveles con ventanal)
-  const pb = new Builder();
-  const pf = closed(ringPolyline(PALCOS.d0 + 0.3)), pk = closed(ringPolyline(PALCOS.d1));
-  band(pb, pf, pk, PALCOS.z1); band(pb, closed(ringPolyline(PALCOS.d0)), pf, PALCOS.z0 + 0.3);
-  wall(pb, pk, PALCOS.z0, PALCOS.z1);
-  const palcoSlab = new THREE.Mesh(pb.geometry(), darkConcrete);
-  palcoSlab.castShadow = palcoSlab.receiveShadow = true; root.add(palcoSlab);
-  const gb = new Builder(); wall(gb, pf, PALCOS.z0 + 0.3, PALCOS.z1);
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x1b2d3a, metalness: 0.6, roughness: 0.15, emissive: 0xffd28a, emissiveIntensity: 0, side: THREE.DoubleSide });
-  const glass = new THREE.Mesh(gb.geometry(), glassMat); root.add(glass);
+  // Pasillo transversal entre parte baja y parte alta
+  const ab = new Builder();
+  band(ab, closed(ringPolyline(AISLE.d0)), closed(ringPolyline(AISLE.d1)), AISLE.z);
+  const aisle = new THREE.Mesh(ab.geometry(), concrete);
+  aisle.receiveShadow = true; root.add(aisle);
 
-  // Fachada exterior
+  // Fachada exterior (anillo que cierra el tazón)
   const fb = new Builder();
   const fo = closed(ringPolyline(FACADE.d1)), fi = closed(ringPolyline(FACADE.d0));
   wall(fb, fo, 0, FACADE.z1); wall(fb, fi, UPPER.zTop, FACADE.z1); band(fb, fi, fo, FACADE.z1);
-  const facadeMat = new THREE.MeshStandardMaterial({ color: 0xe8ebec, roughness: 0.7, side: THREE.DoubleSide });
+  const facadeMat = new THREE.MeshStandardMaterial({ color: 0xd9dcd8, roughness: 0.75, side: THREE.DoubleSide });
   const facade = new THREE.Mesh(fb.geometry(), facadeMat);
   facade.castShadow = facade.receiveShadow = true; root.add(facade);
 
-  // Techo
-  const roofShape = new THREE.Shape(closed(ringPolyline(ROOF.dOut, 16)).map((p) => new THREE.Vector2(p.x, p.y)));
-  roofShape.holes.push(new THREE.Path(closed(ringPolyline(ROOF.dIn, 16)).map((p) => new THREE.Vector2(p.x, p.y))));
-  const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: ROOF.thick, bevelEnabled: false, curveSegments: 1 });
-  roofGeo.translate(0, 0, ROOF.z - ROOF.thick / 2);
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f5, roughness: 0.5, metalness: 0.2, transparent: true, opacity: 1, side: THREE.DoubleSide });
+  // Edificio de palcos y prensa (poniente), con ventanal hacia la cancha
+  const pressH = PRESS.z1 - 5;
+  const pressW = PRESS.xIn - PRESS.xOut, pressL = PRESS.halfLen * 2, pressX = (PRESS.xIn + PRESS.xOut) / 2;
+  const press = new THREE.Mesh(new THREE.BoxGeometry(pressW, pressL, pressH).translate(pressX, 0, pressH / 2), darkConcrete);
+  press.castShadow = press.receiveShadow = true; root.add(press);
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x1b2d3a, metalness: 0.6, roughness: 0.15, emissive: 0xffd28a, emissiveIntensity: 0, side: THREE.DoubleSide });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(pressW, pressL, 5).translate(pressX, 0, pressH + 2.5), glassMat);
+  glass.castShadow = true; root.add(glass);
+
+  // Talud de pasto detrás de la tribuna oriente
+  const bb = new Builder();
+  const bx0 = HX + FACADE.d1, by = HY - R + 6;
+  bb.quad({ x: bx0, y: -by, z: FACADE.z1 - 3 }, { x: bx0 + 16, y: -by, z: 0 }, { x: bx0 + 16, y: by, z: 0 }, { x: bx0, y: by, z: FACADE.z1 - 3 });
+  const berm = new THREE.Mesh(bb.geometry(), new THREE.MeshStandardMaterial({ color: 0x4f8f3a, roughness: 1, side: THREE.DoubleSide }));
+  berm.receiveShadow = true; root.add(berm);
+
+  // Techo en media luna sobre la tribuna poniente
+  const steps = 40;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const y = -CANOPY.halfLen + (2 * CANOPY.halfLen * i) / steps;
+    pts.push(new THREE.Vector2(CANOPY.x0 - canopyWidth(y), y));
+  }
+  pts.push(new THREE.Vector2(CANOPY.x0, CANOPY.halfLen), new THREE.Vector2(CANOPY.x0, -CANOPY.halfLen));
+  const roofGeo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: CANOPY.thick, bevelEnabled: false });
+  roofGeo.translate(0, 0, CANOPY.z - CANOPY.thick / 2);
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0xf4f5f2, roughness: 0.45, metalness: 0.1, transparent: true, opacity: 1, side: THREE.DoubleSide });
   const roof = new THREE.Mesh(roofGeo, roofMat);
   roof.castShadow = true; roof.receiveShadow = true; root.add(roof);
 
-  // Columnas que sostienen el techo + luminarias en el borde interior
-  const colGeo = new THREE.BoxGeometry(0.8, 0.8, ROOF.z).translate(0, 0, ROOF.z / 2);
-  const ring = ringPolyline(FACADE.d1 + 0.6, 6);
-  const cols = new THREE.InstancedMesh(colGeo, darkConcrete, Math.ceil(ring.length / 2));
-  let ci = 0;
-  for (let i = 0; i < ring.length; i += 2) { dummy.position.set(ring[i].x, ring[i].y, 0); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); cols.setMatrixAt(ci++, dummy.matrix); }
-  cols.count = ci; cols.castShadow = true; root.add(cols);
+  // Mástiles que sostienen el techo (borde exterior de la media luna)
+  const masts = [];
+  for (let y = -CANOPY.halfLen + 10; y <= CANOPY.halfLen - 10; y += 12) masts.push([CANOPY.x0 - canopyWidth(y) + 1.5, y]);
+  const mastGeo = new THREE.BoxGeometry(0.9, 0.9, CANOPY.z).translate(0, 0, CANOPY.z / 2);
+  const mastMesh = new THREE.InstancedMesh(mastGeo, darkConcrete, masts.length);
+  masts.forEach(([x, y], i) => { dummy.position.set(x, y, 0); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); mastMesh.setMatrixAt(i, dummy.matrix); });
+  mastMesh.castShadow = true; root.add(mastMesh);
 
-  const lampRing = ringPolyline(ROOF.dIn + 0.6, 10).filter((_, i) => i % 1 === 0);
+  // Iluminación: luminarias en el borde del techo y postes sobre la fachada (resto del anillo)
   const lampMat = new THREE.MeshStandardMaterial({ color: 0x555555, emissive: 0xfff4dd, emissiveIntensity: 0 });
-  const lamps = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6, 0.6, 0.5), lampMat, lampRing.length);
-  lampRing.forEach((p, i) => { dummy.position.set(p.x, p.y, ROOF.z - ROOF.thick / 2 - 0.3); dummy.rotation.set(0, 0, Math.atan2(p.ny, p.nx)); dummy.updateMatrix(); lamps.setMatrixAt(i, dummy.matrix); });
+  const lampPos = [];
+  for (let y = -CANOPY.halfLen + 6; y <= CANOPY.halfLen - 6; y += 4) lampPos.push([CANOPY.x0 + 0.5, y, CANOPY.z - CANOPY.thick / 2 - 0.3, 0]);
+  const poleRing = ringPolyline(FACADE.d1 - 0.4, 4).filter((p) => p.x > -HX + 5);
+  const poles = [];
+  poleRing.forEach((p, i) => {
+    if (i % 2) return;
+    poles.push(p);
+    lampPos.push([p.x, p.y, FACADE.z1 + 9, Math.atan2(p.ny, p.nx)]);
+  });
+  const lamps = new THREE.InstancedMesh(new THREE.BoxGeometry(1.6, 0.6, 0.6), lampMat, lampPos.length);
+  lampPos.forEach(([x, y, z, rot], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, 0, rot); dummy.updateMatrix(); lamps.setMatrixAt(i, dummy.matrix); });
   root.add(lamps);
+  const poleMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.2, 9, 6).rotateX(Math.PI / 2).translate(0, 0, 4.5), darkConcrete, poles.length);
+  poles.forEach((p, i) => { dummy.position.set(p.x, p.y, FACADE.z1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); poleMesh.setMatrixAt(i, dummy.matrix); });
+  poleMesh.castShadow = true; root.add(poleMesh);
 
   // Luces
   const hemi = new THREE.HemisphereLight(0xdfefff, 0x8a7a5c, 0.9);

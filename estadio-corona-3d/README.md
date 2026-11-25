@@ -7,8 +7,11 @@ App web (Vite + Three.js + MapLibre GL) que coloca un modelo 3D del **Estadio TS
 
 - **Estadio 3D en el mapa.** Una capa personalizada de MapLibre comparte el contexto WebGL con
   Three.js. La escena está en metros y se georreferencia en 25.629145, -103.379417.
-- **Asientos clicables por sección.** Son 40 secciones (101–120 en el nivel inferior y 201–220
-  en el superior), cada una con sus asientos instanciados. Al pasar el cursor se ve sección, fila
+- **Forma del TSM.** El modelo sigue la foto satelital: un solo tazón alrededor de la cancha
+  (girada ≈4°), con un techo en media luna sólo sobre la tribuna poniente, el edificio de palcos y
+  prensa detrás de ella, un talud de pasto detrás de la tribuna oriente y unos 29,600 asientos.
+- **Asientos clicables por sección.** Son 40 secciones: 101–120 en la parte baja (filas 1–17) y
+  201–220 en la parte alta (filas 18–32), separadas por un pasillo. Cada una tiene sus asientos instanciados. Al pasar el cursor se ve sección, fila
   y asiento. Al hacer clic se elige el asiento, se resalta su sección y el mapa vuela hasta él.
   Las secciones del panel izquierdo llevan directo a cada una.
 - **Vista desde el asiento.** Abre una cámara en primera persona a la altura de los ojos del
@@ -42,8 +45,8 @@ recompilar:
 ?lat=25.629145&lng=-103.379417&bearing=0
 ```
 
-`bearing` es el rumbo del eje largo de la cancha, en grados desde el norte. El valor `0` es
-provisional: ajústalo hasta que el modelo coincida con la huella del estadio en el mapa.
+`bearing` es el rumbo del eje largo de la cancha, en grados desde el norte. El valor `4` se midió
+sobre la foto satelital; se puede afinar hasta que el modelo coincida con el estadio en el mapa.
 
 ## Estructura
 
@@ -57,8 +60,8 @@ provisional: ajústalo hasta que el modelo coincida con la huella del estadio en
 
 ## Limitaciones
 
-- El modelo es **paramétrico y aproximado**: dos niveles con palcos y techo perimetral. Las
-  dimensiones, la numeración de secciones y el número de asientos son ilustrativos, no el plano
-  oficial.
+- El modelo es **paramétrico y aproximado**, ajustado a ojo sobre una foto satelital. Las
+  dimensiones, la numeración de secciones, los precios y el número de asientos son ilustrativos,
+  no el plano oficial.
 - Los mosaicos vienen de `tile.openstreetmap.org`. Para uso con mucho tráfico conviene usar un
   proveedor propio, según la [política de uso de mosaicos de OSM](https://operations.osmfoundation.org/policies/tiles/).
